@@ -1,0 +1,117 @@
+- name: Check Nomad installation
+  command: which nomad
+  environment:
+    PATH: "123:321"
+    #"{{ nomad_bin_path }}:{{ ansible_env.PATH }}"
+  register: nomad_installation
+  changed_when: false
+  ignore_errors: true
+  check_mode: false
+
+- name: Get installed Nomad version
+  shell: |
+    set -o pipefail
+    {{ nomad_installation.stdout }} -version | cut -d' ' -f2 | tr -d 'v'
+  args:
+    executable: /bin/bash
+  when: not nomad_installation is failed
+  changed_when: false
+  check_mode: false
+  register: installed_nomad_version
+
+- name: Compute if installation is required
+  set_fact:
+    nomad_installation_required: "{{ nomad_installation is failed or installed_nomad_version.stdout != nomad_version }}"
+
+- block:
+    - name: Create Nomad group
+      group:
+        name: "{{ nomad_group }}"
+        state: present
+
+    - name: Create Nomad user
+      user:
+        name: "{{ nomad_user }}"
+        group: "{{ nomad_group }}"
+        shell: "/usr/sbin/nologin"
+        state: present
+        system: true
+
+    - name: Create directories
+      file:
+        dest: "{{ item }}"
+        state: "directory"
+        owner: "{{ nomad_user }}"
+        group: "{{ nomad_group }}"
+        mode: "0770"
+      with_items:
+        - "{{ nomad_config_path }}"
+        - "{{ nomad_data_path }}"
+        - "{{ nomad_data_path }}/tls"
+        - "{{ nomad_persistent_volume_path }}"
+
+    - name: Ensure remote nomad dir exists
+      file:
+        path: /tmp/nomad
+        state: directory
+
+    - name: "Download nomad → {{ nomad_zip_url }}"
+      get_url:
+        url: "{{ nomad_zip_url }}"
+        dest: "/tmp/nomad/{{ nomad_pkg }}"
+        timeout: "42"
+
+    - name: Unarchive nomad and install binary
+      unarchive:
+        remote_src: true
+        src: "/tmp/nomad/{{ nomad_pkg }}"
+        dest: "{{ nomad_bin_path }}"
+        owner: "{{nomad_user}}"
+        group: "{{nomad_group}}"
+        mode: "0755"
+
+    - name: Parse and copy Nomad configuration file
+      template:
+        src: "nomad_{{ nomad_role }}.hcl.tpl.j2"
+        dest: "{{ nomad_config_tpl_path }}"
+        owner: "{{ nomad_user }}"
+        group: "{{ nomad_group }}"
+        mode: "0640"
+      no_log: false
+
+    - name: Creating nomad.service
+      shell: |
+        cat <<EOT > /etc/systemd/system/nomad.service
+        [Unit]
+        Description="Nomad"
+        [Service]
+        Restart=always
+        RestartSec=30
+        TimeoutStartSec=1m
+        ExecStart=/usr/local/bin/nomad agent -config /etc/nomad.d/config.hcl
+        [Install]
+        WantedBy=multi-user.target
+        EOT
+
+    - name: Enable service nomad and ensure it is not masked
+      ansible.builtin.systemd:
+        name: nomad
+        enabled: yes
+        masked: no
+        
+    - name: Just force systemd to reread configs (2.4 and above)
+      ansible.builtin.systemd:
+        daemon_reload: yes
+
+    - name: Restart nomad
+      service:
+        name: 'nomad'
+        state: 'restarted'
+
+    - name: Cleanup
+      file:
+        path: "/tmp/nomad"
+        state: absent
+      tags: installation
+  
+  when: nomad_installation_required

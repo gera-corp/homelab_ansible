@@ -1,0 +1,11 @@
+---
+# tasks file for deploy_nomad
+# - name: Install Docker
+#   include_tasks: install_docker.yaml
+
+- name: Install Docker
+  include_tasks: install_docker.yaml
+  when: (nomad_role == "server-client") or (nomad_role == "client")
+
+- name: Install Nomad
+  include_tasks: install_nomad.yaml

@@ -1,0 +1,67 @@
+---
+# defaults file for deploy_nomad
+# Installation vars
+nomad_version: '1.3.1'
+nomad_bin_path:    /usr/local/bin
+nomad_config_path: /etc/nomad.d
+nomad_config_tpl_path: "{{ nomad_config_path }}/config.hcl"
+nomad_data_path: /opt/nomad
+nomad_persistent_volume_path: /data
+nomad_main_config: /etc/nomad.d/config.hcl
+nomad_systemd_service_name: nomad
+nomad_user: "nomad"
+nomad_group: "hashitools"
+# nomad_role: "server-client"
+# nomad_groups:
+#   - 'docker'
+
+# Configuration vars
+nomad_datacenter: 'dc1'
+nomad_region: 'local'
+nomad_bind_addr: "0.0.0.0"
+nomad_advertise_addr: "{{ ansible_ens192.ipv4.address }}"
+nomad_log_level: "INFO"
+nomad_http_port: 4646
+nomad_rpc_port: 4647
+nomad_serf_port: 4648
+nomad_gossip_encryption_key: '<<- with secret "secret/tools/nomad/nomad_gossip_encryption_key" >><<.Data.value>><<- end >>'
+
+## Variables for Vault stanza
+# nomad_vault_address: 'https://active.vault.service.consul:8200'
+# nomad_vault_token: '<<- with secret "secret/tools/nomad/nomad_cluster_token" >><<.Data.value>><<- end >>'
+# nomad_vault_create_from_role: "nomad-cluster"
+# nomad_vault_ca: '/opt/nomad/tls/nomad.ca'
+# nomad_vault_crt: '/opt/nomad/tls/nomad.crt'
+# nomad_vault_key: '/opt/nomad/tls/nomad.key'
+# nomad_vault_tls_server_name: 'vault.{{ private_dns_zone }}'
+# nomad_vault_tls_skip_verify: true
+# nomad_vault_use_tls: true
+
+## Meta tags for Nomad client config
+# nomad_client_meta_env: '{{ node_meta_env | default("${NODE_META_ENV}") }}'
+# nomad_client_meta_service: '{{ node_meta_service | default("${NODE_META_SERVICE}") }}'
+# nomad_client_meta_component: '{{ node_meta_component | default("${NODE_META_COMPONENT}") }}'
+# nomad_client_meta_subcomponent: '{{ node_meta_subcomponent | default("${NODE_META_SUBCOMPONENT}") }}'
+
+## Docker related part for Nomad client
+# docker_auth_secret: '<<- with secret "secret/tools/nomad/docker_auth_secret" >><<.Data.secret>><<- end >>'
+# docker_auth_json_file: '/etc/docker/auth.json'
+# docker_auth_json_tpl: '/etc/docker/auth.json.tpl'
+
+# Download binary vars
+nomad_architecture_map:
+  # this first entry seems... redundant (but it's required for reasons)
+  amd64: amd64
+  x86_64: amd64
+  armv7l: arm
+  aarch64: arm64
+nomad_architecture: "{{ nomad_architecture_map[ansible_architecture] }}"
+nomad_os: "{{ ansible_system|lower }}"
+nomad_pkg: "nomad_{{ nomad_version }}_{{ nomad_os }}_{{ nomad_architecture }}.zip"
+nomad_iface: "{{ lookup('env','nomad_IFACE') | default(ansible_default_ipv4.interface, true) }}"
+nomad_shasums: "nomad_{{ nomad_version }}_SHA256SUMS"
+nomad_zip_url: "https://releases.hashicorp.com/nomad/{{ nomad_version }}/nomad_{{ nomad_version }}_{{ nomad_os }}_{{ nomad_architecture }}.zip"
+nomad_checksum_file_url: "https://releases.hashicorp.com/nomad/{{ nomad_version }}/{{nomad_shasums}}"
+nomad_servers_ips: '["192.168.1.69", "192.168.1.70"]'
+
+configure_data_disk: false

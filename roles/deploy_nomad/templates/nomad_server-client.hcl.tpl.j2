@@ -1,0 +1,91 @@
+data_dir              = "{{ nomad_data_path }}"
+datacenter            = "{{ nomad_datacenter }}"
+region                = "{{ nomad_region }}"
+enable_debug          = false
+enable_syslog         = true
+log_level             = "{{ nomad_log_level }}"
+log_json              = true
+log_rotate_duration   = "24h"
+log_rotate_bytes      = "2147483648"
+log_rotate_max_files  = 3
+disable_update_check  = true
+leave_on_terminate    = false
+leave_on_interrupt    = false
+bind_addr             = "{{ nomad_bind_addr }}"
+advertise {
+  http = "{{ nomad_advertise_addr }}"
+  rpc  = "{{ nomad_advertise_addr }}"
+  serf = "{{ nomad_advertise_addr }}"
+}
+
+ports {
+  http = "{{ nomad_http_port }}"
+  rpc  = "{{ nomad_rpc_port }}"
+  serf = "{{ nomad_serf_port }}"
+}
+
+server {
+  enabled                 = true
+  deployment_gc_threshold = "10m"
+  job_gc_threshold        = "10m"
+  eval_gc_threshold       = "10m"
+  node_gc_threshold       = "1h"
+  job_gc_interval         = "1h"
+  bootstrap_expect        = 2
+  raft_protocol           = 3
+  raft_multiplier         = 1
+  # Nomad supports gossip encryption keys of 32 bytes as well. Supplying a 32 byte key enables AES-256 mode by using this command: 
+  # dd if=/dev/urandom bs=32 count=1 status=none | base64
+  # encrypt                 = "{{ nomad_gossip_encryption_key }}"
+  server_join {
+    retry_join = {{ nomad_servers_ips }}
+  }
+}
+
+limits = {
+  http_max_conns_per_client = 100
+  https_handshake_timeout   = "5s"
+  rpc_handshake_timeout     = "5s"
+  rpc_max_conns_per_client  = 50
+}
+
+client {
+  enabled             = true
+  no_host_uuid        = true
+  min_dynamic_port    = 30000
+  max_dynamic_port    = 35000
+  alloc_dir           = "{{ nomad_data_path }}/alloc"
+  max_kill_timeout    = "60s"
+  node_class          = "regular"
+  disable_remote_exec = true
+  reserved            = {
+    cpu     = 200
+    memory  = 200
+    disk    = 1
+  }
+  options = {
+    "env.denylist" = "MY_CUSTOM_ENVVAR"
+    "driver.denylist" = "qemu,java,exec,raw_exec"
+    "driver.allowlist" = "docker"
+  }
+  host_volume "persistent-storage" {
+    path = "/data"
+    read_only = false
+  }
+}
+
+plugin "docker" {
+  config {
+    allow_caps = [
+      "CHOWN", "DAC_OVERRIDE", "FSETID", "FOWNER", "MKNOD",
+      "SETGID", "SETUID", "SETFCAP", "SETPCAP", "NET_BIND_SERVICE",
+      "SYS_CHROOT", "KILL", "AUDIT_WRITE",
+    ]
+    volumes {
+      enabled = true
+    }
+    gc {
+      image = true
+    }
+  }
+}

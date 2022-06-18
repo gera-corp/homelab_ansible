@@ -1,0 +1,31 @@
+- name: 'Docker | Install packages for apt add repository over HTTPS'
+  package:
+    name: "{{ item }}"
+    state: present
+  with_items: 
+    - apt-transport-https
+    - ca-certificates
+    - gnupg2
+    - curl
+    - gzip
+    - unzip
+  tags: installation
+  register: apt_action
+  retries: 100 # this is to overcome https://github.com/ansible/ansible/issues/51663
+  until: apt_action is success or ('Failed to lock apt for exclusive operation' not in apt_action.msg and '/var/lib/dpkg/lock' not in apt_action.msg)
+
+- name: 'Docker | Add Apt key from official docker repo'
+  apt_key:
+    url: 'https://download.docker.com/linux/debian/gpg'
+    state: 'present'
+
+- name: 'Docker | Add docker official repository'
+  apt_repository:
+    repo: 'deb [arch=amd64] https://download.docker.com/linux/debian bullseye stable'
+    state: 'present'
+    update_cache: true
+
+- name: 'Docker | Install Docker'
+  apt:
+    name: 'docker-ce=5:20.10.17~3-0~debian-bullseye'
+    state: 'present'  

@@ -1,0 +1,4 @@
+---
+# tasks file for deploy_consul
+- name: Install Consul
+  include_tasks: install_consul.yaml

@@ -1,0 +1,8 @@
+- name: Deply Nomad
+  hosts: nomad_servers-client
+  vars:
+    nomad_role: server-client
+  become: true
+
+  roles:
+    - deploy_nomad

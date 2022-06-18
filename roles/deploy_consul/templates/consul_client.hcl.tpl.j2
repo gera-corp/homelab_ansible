@@ -1,0 +1,33 @@
+data_dir = "{{ consul_data_path }}"
+datacenter = "{{ consul_datacenter }}"
+enable_script_checks        = false
+enable_local_script_checks  = true
+
+bind_addr = "{{ consul_advertise_addr }}"
+addresses = {
+  "http" = "0.0.0.0"
+}
+
+client_addr = "{{ consul_advertise_addr }} 127.0.0.1"
+disable_remote_exec = true
+disable_update_check = true
+
+dns_config = {
+  "node_ttl" = "5s"
+  "service_ttl" = {
+    "*" = "5s"
+  }
+  "max_stale" = "5s"
+}
+
+#encrypt            = "<<- with secret "secret/tools/consul/consul_gossip_encryption_key" >><<.Data.value>><<- end >>"
+leave_on_terminate = true
+
+ports = {
+  "dns" = 8600
+}
+
+retry_join = {{ consul_servers_ips }}
+
+server   = false
+log_json = true

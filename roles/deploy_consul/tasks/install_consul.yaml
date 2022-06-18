@@ -1,0 +1,128 @@
+- name: Add Consul group
+  group:
+    name: "{{ consul_group }}"
+    state: present
+
+- name: Add Consul user
+  user:
+    name: "{{ consul_user }}"
+    comment: "Consul user"
+    group: "{{ consul_group }}"
+    shell: /bin/false
+    system: true
+
+- name: Check Consul installation
+  command: which consul
+  environment:
+    PATH: "{{ 122 }}:{{ 2.2 }}"
+  register: consul_installation
+  changed_when: false
+  ignore_errors: true
+  check_mode: false
+
+- name: Get installed Consul version
+  shell: |
+    set -o pipefail
+    {{ consul_installation.stdout }} -version | head -n1 | cut -d' ' -f2 | tr -d 'v'
+  args:
+    executable: /bin/bash
+  when: not consul_installation is failed
+  changed_when: false
+  check_mode: false
+  register: installed_consul_version
+  ignore_errors: True
+
+- name: Compute if installation is required
+  set_fact:
+    consul_installation_required: "{{ consul_installation is failed or installed_consul_version.stdout != consul_version }}"
+
+- block:
+    - name: OS packages
+      become: true
+      package:
+        name: "{{ item }}"
+        state: present
+      with_items: 
+        - gzip
+        - unzip
+      tags: installation
+      register: apt_action
+      retries: 100 # this is to overcome https://github.com/ansible/ansible/issues/51663
+      until: apt_action is success or ('Failed to lock apt for exclusive operation' not in apt_action.msg and '/var/lib/dpkg/lock' not in apt_action.msg)
+
+    - name: Ensure remote consul dir exists
+      file:
+        path: /tmp/consul
+        state: directory
+
+    - name: "Download consul → {{ consul_zip_url }}"
+      get_url:
+        url: "{{ consul_zip_url }}"
+        dest: "/tmp/consul/{{ consul_pkg }}"
+        timeout: "42"
+
+    - name: Unarchive consul and install binary
+      unarchive:
+        remote_src: true
+        src: "/tmp/consul/{{ consul_pkg }}"
+        dest: "{{ consul_bin_path }}"
+        owner: "{{ consul_user }}"
+        group: "{{ consul_group }}"
+        mode: "0755"
+
+    - name: Create directories
+      file:
+        dest: "{{ item }}"
+        state: "directory"
+        owner: "{{ consul_user }}"
+        group: "{{ consul_group }}"
+        mode: "0770"
+      with_items:
+        - "{{ consul_config_path }}"
+
+    - name: Parse and copy Consul configuration file
+      template:
+        src: "consul_{{ consul_role }}.hcl.tpl.j2"
+        dest: "{{ consul_config_tpl_path }}"
+        owner: "{{ consul_user }}"
+        group: "{{ consul_group }}"
+        mode: "0640"
+      no_log: false
+
+    - name: Creating consul.service
+      shell: |
+        cat <<EOT > /etc/systemd/system/consul.service
+        [Unit]
+        Description="HashiCorp Consul - A service mesh solution"
+        Documentation=https://www.consul.io/
+        Requires=network-online.target
+        After=network-online.target
+
+        [Service]
+        User=root
+        Group=root
+        ExecStart=/usr/local/bin/consul agent -config-dir=/etc/consul.d
+        ExecReload=/usr/local/bin/consul reload
+        KillMode=process
+        Restart=on-failure
+
+        [Install]
+        WantedBy=multi-user.target
+        EOT
+
+    - name: Enable service consul and ensure it is not masked
+      ansible.builtin.systemd:
+        name: consul
+        enabled: yes
+        masked: no
+        
+    - name: Just force systemd to reread configs (2.4 and above)
+      ansible.builtin.systemd:
+        daemon_reload: yes
+
+    - name: Restart consul
+      service:
+        name: 'consul'
+        state: 'restarted'
+        
+  when: consul_installation_required

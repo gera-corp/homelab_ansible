@@ -1,0 +1,8 @@
+- name: Deply Consul
+  hosts: consul_servers
+  vars:
+    consul_role: server
+  become: true
+
+  roles:
+    - deploy_consul
