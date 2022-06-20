@@ -1,2 +1,2 @@
-ansible_user                   : gera
-ansible_ssh_private_key_file   : /home/gera/.ssh/id_ansible_nomad_instance
+ansible_user                   : admin
+ansible_ssh_private_key_file   : /home/gera/.ssh/id_ansible_instances
