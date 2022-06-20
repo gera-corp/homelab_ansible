@@ -66,8 +66,8 @@
         remote_src: true
         src: "/tmp/nomad/{{ nomad_pkg }}"
         dest: "{{ nomad_bin_path }}"
-        owner: "{{nomad_user}}"
-        group: "{{nomad_group}}"
+        owner: "{{ nomad_user }}"
+        group: "{{ nomad_group }}"
         mode: "0755"
 
     - name: Parse and copy Nomad configuration file

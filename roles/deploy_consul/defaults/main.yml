@@ -31,4 +31,4 @@ consul_pkg: "consul_{{ consul_version }}_{{ consul_os }}_{{ consul_architecture 
 consul_iface: "{{ lookup('env','consul_IFACE') | default(ansible_default_ipv4.interface, true) }}"
 consul_shasums: "consul_{{ consul_version }}_SHA256SUMS"
 consul_zip_url: "https://releases.hashicorp.com/consul/{{ consul_version }}/consul_{{ consul_version }}_{{ consul_os }}_{{ consul_architecture }}.zip"
-consul_servers_ips: '["192.168.1.69", "192.168.1.70"]'
+consul_servers_ips: '["192.168.1.69", "192.168.1.70", "192.168.1.77"]'
