@@ -1,8 +1,7 @@
 - name: Check Nomad installation
   command: which nomad
   environment:
-    PATH: "123:321"
-    #"{{ nomad_bin_path }}:{{ ansible_env.PATH }}"
+    PATH: "{{ nomad_bin_path }}:{{ ansible_env.PATH }}"
   register: nomad_installation
   changed_when: false
   ignore_errors: true

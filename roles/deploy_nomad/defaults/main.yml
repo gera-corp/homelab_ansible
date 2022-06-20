@@ -62,6 +62,6 @@ nomad_iface: "{{ lookup('env','nomad_IFACE') | default(ansible_default_ipv4.inte
 nomad_shasums: "nomad_{{ nomad_version }}_SHA256SUMS"
 nomad_zip_url: "https://releases.hashicorp.com/nomad/{{ nomad_version }}/nomad_{{ nomad_version }}_{{ nomad_os }}_{{ nomad_architecture }}.zip"
 nomad_checksum_file_url: "https://releases.hashicorp.com/nomad/{{ nomad_version }}/{{nomad_shasums}}"
-nomad_servers_ips: '["192.168.1.69", "192.168.1.70", "192.168.1.77"]'
+nomad_servers_ips: '["192.168.1.15", "192.168.1.25", "192.168.1.30"]'
 
 configure_data_disk: false

@@ -1,26 +1,27 @@
 [nomad_servers-client]
-nmsc01 ansible_host=192.168.1.69
-nmsc02 ansible_host=192.168.1.70
+nmsc01 ansible_host=192.168.1.15
+nmsc02 ansible_host=192.168.1.25
+nmsc03 ansible_host=192.168.1.30
 
 [nomad_servers]
-nms01 ansible_host=192.168.1.69
-nms02 ansible_host=192.168.1.70
-nms03 ansible_host=192.168.1.77
+nms01 ansible_host=192.168.1.15
+nms02 ansible_host=192.168.1.25
+nms03 ansible_host=192.168.1.30
 
 [nomad_clients]
 nmc01 ansible_host=192.168.1.73
 nmc02 ansible_host=192.168.1.74
-nmc03 ansible_host=192.168.1.79
 
 
 [consul_servers-client]
-cssc01 ansible_host=192.168.1.69
-cssc02 ansible_host=192.168.1.70
+cssc01 ansible_host=192.168.1.15
+cssc02 ansible_host=192.168.1.25
+cssc03 ansible_host=192.168.1.30
 
 [consul_servers]
-css01 ansible_host=192.168.1.69
-css02 ansible_host=192.168.1.70
-css03 ansible_host=192.168.1.77
+css01 ansible_host=192.168.1.15
+css02 ansible_host=192.168.1.25
+css03 ansible_host=192.168.1.30
 
 [consul_client]
 csc01 ansible_host=192.168.1.73
