@@ -1,0 +1,32 @@
+[Unit]
+Description="HashiCorp Vault - A tool for managing secrets"
+Documentation=https://www.vaultproject.io/docs/
+Requires=network-online.target
+After=network-online.target
+ConditionFileNotEmpty={{vault_config_file}}
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+[Service]
+User={{vault_user}}
+Group={{vault_group}}
+ProtectHome=read-only
+PrivateTmp=yes
+PrivateDevices=yes
+NoNewPrivileges=yes
+ExecStart={{vault_bin_path}}/vault agent -config={{vault_config_file}}
+ExecReload=/bin/kill --signal HUP $MAINPID
+KillMode=process
+KillSignal=SIGINT
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+StartLimitInterval=60
+StartLimitBurst=3
+LimitNOFILE=65536
+LimitMEMLOCK=infinity
+LimitCORE=0
+SyslogIdentifier=vault-agent
+
+[Install]
+WantedBy=multi-user.target

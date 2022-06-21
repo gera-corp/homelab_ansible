@@ -1,0 +1,8 @@
+- name: Deply Vault
+  hosts: vault_servers
+  vars:
+    vault_service_role: server
+  become: true
+
+  roles:
+    - deploy_vault

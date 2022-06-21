@@ -1,0 +1,48 @@
+- name: Check Vault mlock capability
+  command: "setcap cap_ipc_lock=+ep {{ vault_bin_path }}/vault"
+  changed_when: false  # read-only task
+  ignore_errors: true
+  register: vault_mlock_capability
+
+- name: Enable non root mlock capability
+  command: "setcap cap_ipc_lock=+ep {{ vault_bin_path }}/vault"
+  when: vault_mlock_capability is failed 
+
+- name: Create directories
+  file:
+    dest: "{{ item }}"
+    state: directory
+    owner: "{{ vault_user }}"
+    group: "{{ vault_group }}"
+    mode: "0770"
+  with_items:
+    - "{{ vault_config_path }}"
+    - "{{ vault_plugin_path }}"
+    - "{{ vault_raft_path }}"
+    - "{{ vault_tls_path }}"
+
+- name: Change file ownership, group and permissions
+  ansible.builtin.file:
+    path: "{{ item }}"
+    owner: "{{ vault_user }}"
+    group: "{{ vault_group }}"
+    mode: '0700'
+  with_items:
+    - "{{ vault_config_path }}"
+    - "{{ vault_plugin_path }}"
+    - "{{ vault_raft_path }}"
+    - "{{ vault_tls_path }}"
+    
+- name: Insert http(s) export in dotfile
+  lineinfile:
+    path: "/etc/bash.bashrc"
+    regexp: '^export VAULT_ADDR='
+    line: "export VAULT_ADDR=https://127.0.0.1:8200"
+    create: true
+
+- name: Insert http(s) skip_verify in dotfile
+  lineinfile:
+    path: "/etc/bash.bashrc"
+    regexp: '^export VAULT_SKIP_VERIFY='
+    line: "export VAULT_SKIP_VERIFY=true"
+    create: true

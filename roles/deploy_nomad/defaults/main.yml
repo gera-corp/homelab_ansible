@@ -24,18 +24,18 @@ nomad_log_level: "INFO"
 nomad_http_port: 4646
 nomad_rpc_port: 4647
 nomad_serf_port: 4648
-nomad_gossip_encryption_key: '<<- with secret "secret/tools/nomad/nomad_gossip_encryption_key" >><<.Data.value>><<- end >>'
+nomad_gossip_encryption_key: '{{ nomad_encryption_key.value }}'
 
 ## Variables for Vault stanza
-# nomad_vault_address: 'https://active.vault.service.consul:8200'
-# nomad_vault_token: '<<- with secret "secret/tools/nomad/nomad_cluster_token" >><<.Data.value>><<- end >>'
-# nomad_vault_create_from_role: "nomad-cluster"
+nomad_vault_address: 'http://192.168.1.15:8200'
+nomad_vault_token: '{{ nomad_cluster_token.value }}'
+nomad_vault_create_from_role: "nomad-cluster"
 # nomad_vault_ca: '/opt/nomad/tls/nomad.ca'
 # nomad_vault_crt: '/opt/nomad/tls/nomad.crt'
 # nomad_vault_key: '/opt/nomad/tls/nomad.key'
-# nomad_vault_tls_server_name: 'vault.{{ private_dns_zone }}'
-# nomad_vault_tls_skip_verify: true
-# nomad_vault_use_tls: true
+nomad_vault_tls_server_name: 'vault.server'
+nomad_vault_tls_skip_verify: true
+nomad_vault_use_tls: false
 
 ## Meta tags for Nomad client config
 # nomad_client_meta_env: '{{ node_meta_env | default("${NODE_META_ENV}") }}'

@@ -1,0 +1,150 @@
+vault {
+    address = "{{ vault_elb_address }}"
+    tls_skip_verify = "true"
+}
+
+auto_auth {
+    method "aws" {
+        mount_path = "auth/aws"
+        config = {
+            type = "iam"
+            role = "{{vault_agent_role}}"
+        }
+    }
+}
+
+{% if vault_agent_certificates is defined %}
+{% for item, params in vault_agent_certificates.items() %}
+template {
+    contents = "<<- with $secret := secret \"pki/issue/{{private_dns_zone}}-long-lived\" \"common_name={{params.cn | default(machine_hostname+'.'+private_dns_zone)}}\" \"ttl={{params.ttl | default('24h') }}\">><<.Data.issuing_ca>><<- end>>"
+    destination = "{{params.path | default(vault_agent_tls_path)}}/{{item}}.ca"
+    create_dest_dirs = true
+    command = "bash -c 'chown {{params.user}}:{{params.group}} {{params.path | default(vault_agent_tls_path)}}/{{item}}.ca > /dev/null 2>&1'"
+    perms       = 0640
+    left_delimiter  = "<<"
+    right_delimiter = ">>"
+}
+
+template {
+    contents = "<<- with $secret := secret \"pki/issue/{{private_dns_zone}}-long-lived\" \"alt_names={{params.alt_names | default('')}}\" \"common_name={{params.cn | default(machine_hostname+'.'+private_dns_zone)}}\" \"ttl={{params.ttl | default('24h') }}\" \"ip_sans=127.0.0.1\">><<.Data.certificate>><<- end>>"
+    destination = "{{params.path | default(vault_agent_tls_path)}}/{{item}}.crt"
+    create_dest_dirs = true
+    command = "bash -c 'chown {{params.user}}:{{params.group}} {{params.path | default(vault_agent_tls_path)}}/{{item}}.crt > /dev/null 2>&1'"
+    perms       = 0640
+    left_delimiter  = "<<"
+    right_delimiter = ">>"
+}
+
+template {
+    contents = "<<- with $secret := secret \"pki/issue/{{private_dns_zone}}-long-lived\" \"alt_names={{params.alt_names | default('')}}\" \"common_name={{params.cn | default(machine_hostname+'.'+private_dns_zone)}}\" \"ttl={{params.ttl | default('24h') }}\" \"ip_sans=127.0.0.1\">><<.Data.private_key>><<- end>>"
+    destination = "{{params.path | default(vault_agent_tls_path)}}/{{item}}.key"
+    create_dest_dirs = true
+    command = "bash -c 'chown {{params.user}}:{{params.group}} {{params.path | default(vault_agent_tls_path)}}/{{item}}.key > /dev/null 2>&1'"
+    perms       = 0640
+    left_delimiter  = "<<"
+    right_delimiter = ">>"
+}
+
+{% endfor %}
+{% endif %}
+
+{% if 'jenkins_master' in group_names %}
+template {
+    contents = "<<- with $secret := secret \"secret/tools/nginx/certificates/star_aparavi_com\">><<.Data.cert>><<- end>>"
+    destination = "/opt/vault-agent/tls/jenkins.crt"
+    create_dest_dirs = true
+    command = "bash -c 'chown nginx:nginx /opt/vault-agent/tls/jenkins.crt > /dev/null 2>&1'"
+    perms       = 0640
+    left_delimiter  = "<<"
+    right_delimiter = ">>"
+}
+
+template {
+    contents = "<<- with $secret := secret \"secret/tools/nginx/certificates/star_aparavi_com\">><<.Data.key>><<- end>>"
+    destination = "/opt/vault-agent/tls/jenkins.key"
+    create_dest_dirs = true
+    command = "bash -c 'chown nginx:nginx /opt/vault-agent/tls/jenkins.key > /dev/null 2>&1'"
+    perms       = 0640
+    left_delimiter  = "<<"
+    right_delimiter = ">>"
+}
+{% endif %}
+
+{% if 'platform' in group_names %}
+template {
+    contents = "<<- with $secret := secret \"secret/tools/nginx/certificates/star_aparavi_com\">><<.Data.cert>><<- end>>"
+    destination = "/etc/opt/aparavi-data-ia/cert"
+    create_dest_dirs = true
+    #command = "bash -c 'chown root:root /etc/opt/aparavi-data-ia/cert > /dev/null 2>&1'"
+    perms       = 0660
+    left_delimiter  = "<<"
+    right_delimiter = ">>"
+}
+
+template {
+    contents = "<<- with $secret := secret \"secret/tools/nginx/certificates/star_aparavi_com\">><<.Data.key>><<- end>>"
+    destination = "/etc/opt/aparavi-data-ia/key"
+    create_dest_dirs = true
+    perms       = 0660
+    left_delimiter  = "<<"
+    right_delimiter = ">>"
+}
+
+template {
+    contents = "<<- with $secret := secret \"secret/tools/platform_instalation/configPrivateKey.pem\">><<.Data.value>><<- end>>"
+    destination = "/etc/opt/aparavi-data-ia/platform/config/configPrivateKey.pem"
+    create_dest_dirs = true
+    perms       = 0660
+    left_delimiter  = "<<"
+    right_delimiter = ">>"
+}
+
+template {
+    contents = "<<- with $secret := secret \"secret/tools/platform_instalation/secretsConfig.json\">><<.Data.value>><<- end>>"
+    destination = "/etc/opt/aparavi-data-ia/secretsConfig.json"
+    create_dest_dirs = true
+    perms       = 0660
+    left_delimiter  = "<<"
+    right_delimiter = ">>"
+}
+{% endif %}
+
+# Consul config template
+template {
+    source      = "/etc/consul.d/consul.hcl.tpl"
+    destination = "/etc/consul.d/consul.hcl"
+    perms           = 0640
+    left_delimiter  = "<<"
+    right_delimiter = ">>"
+}
+
+{% if "nomad" in group_names or "worker_node" in group_names %}
+template {
+  source          = "/etc/nomad.d/nomad.hcl.tpl"
+  destination     = "/etc/nomad.d/nomad.hcl"
+  perms           = 0640
+  command         = "bash -c 'chown :hashitools /etc/nomad.d/nomad.hcl > /dev/null 2>&1'"
+  left_delimiter  = "<<"
+  right_delimiter = ">>"
+}
+{% endif %}
+
+{% if "worker_node" in group_names %}
+template {
+  source          = "/etc/docker/auth.json.tpl"
+  destination     = "/etc/docker/auth.json"
+  command         = "bash -c 'chown :docker /etc/docker/auth.json > /dev/null 2>&1'"
+  left_delimiter  = "<<"
+  right_delimiter = ">>"
+}
+{% endif %}
+
+{% if "jenkins_master" in group_names %}
+template {
+    source      = "{{ jenkins_casc_vault_file }}.tpl"
+    destination = "{{ jenkins_casc_vault_file }}"
+    command     = "bash -c 'chown :jenkins {{ jenkins_casc_vault_file }} && chmod 0440 {{ jenkins_casc_vault_file }} > /dev/null 2>&1'"
+    left_delimiter  = "<<"
+    right_delimiter = ">>"
+}
+{% endif %}

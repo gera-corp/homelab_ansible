@@ -1,0 +1,46 @@
+---
+
+- name: Create config path
+  file:
+    dest: "{{ vault_config_path }}"
+    state: directory
+    owner: "{{ vault_user }}"
+    group: "{{ vault_group }}"
+
+- name: Create config path
+  file:
+    dest: "{{ vault_agent_tls_path }}"
+    state: directory
+    mode: "0750"
+    owner: "{{ vault_user }}"
+    group: "{{ vault_group }}"
+
+- name: Set machine_hostname
+  set_fact:
+    machine_hostname: "{{ ansible_hostname }}"
+  when: "'packer' not in group_names"
+
+- name: Add Consul server to vault_agent_certificates
+  set_fact:
+    vault_agent_certificates: "{{ consul_server_certificates }}"
+  when: "'consul' in group_names"
+
+- name: Add Nomad server to vault_agent_certificates
+  set_fact:
+    vault_agent_certificates: "{{ nomad_server_certificates }}"
+  when: "'nomad' in group_names"
+
+- name: Add Nomad client to vault_agent_certificates
+  set_fact:
+    vault_agent_certificates: "{{ nomad_client_certificates }}"
+  when: "'worker_node' in group_names"
+
+# - name: Add Jenkins to vault_agent_certificates
+  # set_fact:
+    # vault_agent_certificates: "{{ jenkins_certificates }}"
+  # when: "'jenkins_master' in group_names"
+
+- name: Add VM to vault_agent_certificates
+  set_fact:
+    vault_agent_certificates: "{{ vm_certificates }}"
+  when: "'vm' in group_names"

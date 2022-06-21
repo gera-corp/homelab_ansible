@@ -1,7 +1,7 @@
 - name: Check Nomad installation
   command: which nomad
   environment:
-    PATH: "{{ nomad_bin_path }}:{{ ansible_env.PATH }}"
+    PATH: "{{ nomad_bin_path }}:{{ ansible_env.PATH123 }}"
   register: nomad_installation
   changed_when: false
   ignore_errors: true
@@ -76,6 +76,9 @@
         owner: "{{ nomad_user }}"
         group: "{{ nomad_group }}"
         mode: "0640"
+      with_items:
+        - "{{ nomad_gossip_encryption_key }}"
+        - "{{ nomad_cluster_token }}"
       no_log: false
 
     - name: Creating nomad.service

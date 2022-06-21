@@ -1,0 +1,105 @@
+---
+# By default, install vault agent. If this equals "server", install vault server
+# vault_service_role: "agent"
+
+# Common variables
+vault_version: "1.11.0"
+vault_bin_path: "/usr/local/bin"
+vault_auto_join_tag_key: "component"
+vault_auto_join_tag_value: "vault"
+vault_groups:
+  - "montools"
+  - "docker"
+
+# Agent specific variables
+vault_agent_group: "hashitools"
+vault_agent_user: "vault"
+vault_agent_group2: "montools"
+
+vault_agent_config_path: "/etc/vault-agent.d"
+vault_agent_tls_path: "/opt/vault-agent/tls"
+vault_elb_address: "{{ vault_address }}"
+
+consul_server_certificates:
+  consul:
+    user: ""
+    group: hashitools
+    alt_names: 'localhost'
+    cn: 'consul.{{private_dns_zone}}'
+    path: '/opt/consul/tls'
+
+nomad_server_certificates:
+  nomad:
+    user: ""
+    group: hashitools
+    cn: "server.global.nomad"
+    alt_names: "nomad.{{private_dns_zone}},nomad.service.consul,server.us.nomad"
+    path: '/opt/nomad/tls'
+
+nomad_client_certificates:
+  nomad:
+    user: ""
+    group: hashitools
+    cn: "client.global.nomad"
+    alt_names: "client.us.nomad"
+    path: '/opt/nomad/tls'
+
+jenkins_certificates:
+  jenkins:
+    user: nginx
+    group: nginx
+    cn: "jenkins.{{private_dns_zone}}"
+    alt_names: "jenkins.service.consul"
+    #command: "awk 1 {{vault_agent_tls_path}}/jenkins.crt {{vault_agent_tls_path}}/jenkins.ca > {{vault_agent_tls_path}}/jenkins.bundle.crt && if systemctl status nginx --no-pager ;then systemctl reload nginx ; else systemctl restart nginx; fi || :"
+
+vm_certificates:
+  vm:
+    user: ""
+    group: "{{ victoriametrics_system_group | default(vault_agent_group2) }}"
+    cn: "vm.{{private_dns_zone}}"
+    path: "{{ victoriametrics_tls_certs_path | default('/etc/vm/tls') }}"
+    ttl: "{{ victoriametrics_vault_cert_ttl | default('7d') }}"
+
+# Server specific variables
+vault_aws_region: "local"
+vault_server_group: "hashitools"
+vault_server_group2: "montools"
+vault_server_user:  "vault"
+vault_server_config_path: "/etc/vault.d"
+vault_plugin_path: "/usr/local/lib/vault/plugins"
+vault_raft_path: "/opt/vault/data"
+vault_tls_path: "/opt/vault/tls"
+vault_tls_cert_file: "{{vault_tls_path}}/vault.crt.pem"
+vault_tls_key_file: "{{vault_tls_path}}/vault.key.pem"
+vault_tls_client_cert_file: "{{vault_tls_path}}/vault-client.crt.pem"
+vault_tls_client_key_file: "{{vault_tls_path}}/vault-client.key.pem"
+vault_tls_client_ca_file: "{{vault_tls_path}}/vault-client-ca.crt.pem"
+vault_tls_server_name: "vault.server"
+vault_servers_ips: '["192.168.1.15"]'
+
+vault_bind_addr: "0.0.0.0"
+vault_api_port: 8200
+vault_api_address: "https://vault.service.consul:{{ vault_api_port }}"
+vault_cluster_port: 8201
+vault_cluster_address: "https://vault.service.consul:{{ vault_cluster_port }}"
+
+# Compute variables which depend on Vault service role
+vault_group: "hashitools"
+#"{% if vault_service_role == 'agent' %}{{vault_agent_group}}{% else %}{{vault_server_user}}{% endif %}"
+vault_user:  "{% if vault_service_role == 'agent' %}{{ vault_agent_user }}{% else %}{{ vault_server_user }}{% endif %}"
+vault_config_path: "{% if vault_service_role == 'agent' %}{{ vault_agent_config_path }}{% else %}{{ vault_server_config_path }}{% endif %}"
+vault_config_file: "{{ vault_config_path }}/vault.hcl"
+vault_systemd_name: "{% if vault_service_role == 'agent' %}vault-agent{% else %}vault{% endif %}"
+
+# Common installation variables
+vault_architecture_map:
+  amd64: amd64
+  x86_64: amd64
+  armv7l: arm
+  aarch64: arm64
+vault_architecture: "{{ vault_architecture_map[ansible_architecture] }}"
+vault_os: "{{ ansible_system|lower }}"
+vault_pkg: "vault_{{ vault_version }}_{{ vault_os }}_{{ vault_architecture }}.zip"
+vault_shasums: "vault_{{ vault_version }}_SHA256SUMS"
+vault_zip_url: "https://releases.hashicorp.com/vault/{{ vault_version }}/vault_{{ vault_version }}_{{ vault_os }}_{{ vault_architecture }}.zip"
+vault_checksum_file_url: "https://releases.hashicorp.com/vault/{{ vault_version }}/{{vault_shasums}}"

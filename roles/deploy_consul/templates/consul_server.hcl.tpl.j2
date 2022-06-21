@@ -1,13 +1,13 @@
 retry_join                  = {{ consul_servers_ips }}
 data_dir                    = "{{ consul_data_path }}"
 datacenter                  = "{{ consul_datacenter }}"
-bootstrap_expect            = 2
+bootstrap_expect            = 3
 raft_protocol               = 3
 client_addr                 = "{{ consul_advertise_addr }} 127.0.0.1"
 disable_remote_exec         = true
 disable_update_check        = true
 discard_check_output        = true
-# encrypt                     = "{{ consul_gossip_encryption_key }}"
+encrypt                     = "{{ consul_gossip_encryption_key }}"
 enable_debug                = false
 leave_on_terminate          = true
 ui_config = {

@@ -1,0 +1,96 @@
+- name: Add Vault group
+  group:
+    name: "{{ vault_group }}"
+    state: present
+  when: vault_user != "root"
+  
+- name: Add Vault additional groups
+  group:
+    name: "{{ item }}"
+    state: present
+  with_items: "{{ vault_groups }}"
+  when: vault_user != "root"
+
+- name: Add Vault user
+  user:
+    name: "{{ vault_user }}"
+    comment: "Vault system user"
+    groups: "{{ [vault_group] + vault_groups }}"
+    system: true
+  when: vault_group != "root"
+
+- name: Check Vault installation
+  command: which vault
+  environment:
+    PATH: "{{ vault_bin_path }}:{{ ansible_env.PATH }}"
+  register: vault_installation
+  changed_when: false
+  ignore_errors: true
+  check_mode: false
+
+- name: Get installed Vault version
+  shell: |
+    set -o pipefail
+    {{ vault_installation.stdout }} -version | cut -d' ' -f2 | tr -d 'v'
+  args:
+    executable: /bin/bash
+  when: not vault_installation is failed
+  changed_when: false
+  check_mode: false
+  register: installed_vault_version
+
+- name: Compute if installation is required
+  set_fact:
+    installation_required: "{{ vault_installation is failed or installed_vault_version.stdout != vault_version }}"
+
+- name: Install OS packages and Vault
+  include: install.yml
+  when: installation_required
+
+- name: Confugure Vault server 
+  include: configure_server.yml
+  when: vault_service_role == "server"
+
+- name: Confugure Vault agent
+  include: configure_agent.yml
+  when: vault_service_role == "agent"
+
+- name: Render and copy config file
+  template:
+    src: "vault-{{ vault_service_role }}.hcl.j2"
+    dest: "{{ vault_config_file }}"
+    owner: "{{ vault_user }}"
+    group: "{{ vault_group }}"
+    mode: "0400"
+  notify: Restart vault
+
+- name: Copy systemd script
+  template:
+    src: "vault-{{ vault_service_role }}.service.j2"
+    dest: "/etc/systemd/system/{{ vault_systemd_name }}.service"
+    owner: root
+    group: root
+    mode: "0755"
+  register: systemd_unit
+  notify: Restart vault
+
+- name: Reload systemd
+  systemd:
+    daemon-reload: true
+  when:
+    - systemd_unit is changed
+
+- meta: flush_handlers
+
+- name: Enable Vault service
+  systemd:
+    name: "{{ vault_systemd_name }}"
+    state: stopped
+    enabled: yes
+  when: "'packer' not in group_names"
+
+- name: Start Vault service
+  systemd:
+    name: "{{ vault_systemd_name }}"
+    state: started
+  when: "'packer' not in group_names"

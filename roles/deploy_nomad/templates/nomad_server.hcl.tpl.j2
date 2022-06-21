@@ -31,12 +31,12 @@ server {
   eval_gc_threshold       = "10m"
   node_gc_threshold       = "1h"
   job_gc_interval         = "1h"
-  bootstrap_expect        = 2
+  bootstrap_expect        = 3
   raft_protocol           = 3
   raft_multiplier         = 1
   # Nomad supports gossip encryption keys of 32 bytes as well. Supplying a 32 byte key enables AES-256 mode by using this command: 
   # dd if=/dev/urandom bs=32 count=1 status=none | base64
-  # encrypt                 = "{{ nomad_gossip_encryption_key }}"
+  encrypt                 = "{{ nomad_gossip_encryption_key }}"
   server_join {
     retry_join = {{ nomad_servers_ips }}
   }
@@ -49,4 +49,24 @@ limits = {
   rpc_max_conns_per_client  = 50
 }
 
+acl {
+  enabled     = true
+  token_ttl   = "30s"
+  policy_ttl  = "60s"
+}
 
+vault {
+  enabled               = true
+  allow_unauthenticated = true
+  tls_server_name       = "{{ nomad_vault_tls_server_name }}"
+  address               = "{{ nomad_vault_address }}"
+  token                 = "{{ nomad_vault_token }}"
+  create_from_role      = "{{ nomad_vault_create_from_role }}"
+  {% if nomad_vault_use_tls -%}
+  ca_path               = "{{ nomad_vault_ca }}"
+  cert_file             = "{{ nomad_vault_crt }}"
+  key_file              = "{{ nomad_vault_key }}"
+  {% endif -%}
+  tls_skip_verify       = {{ nomad_vault_tls_skip_verify | lower }}
+  task_token_ttl        = "1h"
+}

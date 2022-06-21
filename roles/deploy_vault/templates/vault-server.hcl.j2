@@ -1,0 +1,63 @@
+ui                           = true
+# Disabling mlock is strongly recommended if using integrated storage due to the fact that mlock does not interact well with memory mapped files such as those created by BoltDB, which is used by Raft to track state.
+disable_mlock                = true
+default_lease_ttl            = "10h"
+max_lease_ttl                = "8640h"
+default_max_request_duration = "30s"
+log_level                    = "INFO"
+log_format                   = "json"
+
+listener "tcp" {
+  address                             = "{{vault_bind_addr}}:{{vault_api_port}}"
+  cluster_address                     = "{{vault_bind_addr}}:{{vault_cluster_port}}"
+  http_idle_timeout                   = "1m"
+  http_read_header_timeout            = "10s"
+  http_read_timeout                   = "30s"
+  http_write_timeout                  = "2m"
+  max_request_duration                = "60s"
+  tls_disable                         = 1
+#  tls_min_version                     = "tls12"
+#  tls_cert_file                       = "{{vault_tls_cert_file}}"
+#  tls_key_file                        = "{{vault_tls_key_file}}"
+#  tls_cipher_suites                   = "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305"
+#  tls_require_and_verify_client_cert  = false
+#  tls_client_ca_file                  = "{{vault_tls_client_ca_file}}"
+
+  telemetry {
+    unauthenticated_metrics_access = true
+  }
+}
+
+storage "consul" {
+  address = "0.0.0.0:8500"
+  path    = "vault/"
+}
+
+# storage "raft" {
+#   path    = "/opt/vault/data"
+#   node_id = "nmcs-server-01"
+#
+#   retry_join {
+#     auto_join  = "provider=vsphere category_name=nmcs-server-01 tag_name=nmcs-server-01 host=192.168.1.5 user=root password=aNigil123123! insecure_ssl=[true]"
+#     leader_tls_servername   = "{{vault_tls_server_name}}"
+#   }
+# }
+
+service_registration "consul" {
+  address         = "127.0.0.1:8500"
+#  scheme          = "https"
+#  tls_ca_file     = "{{vault_tls_client_ca_file}}"
+#  tls_cert_file   = "{{vault_tls_client_cert_file}}"
+#  tls_key_file    = "{{vault_tls_client_key_file}}"
+#  tls_min_version = "tls12"
+#  tls_skip_verify = "false"
+#  token           = "abcd1234"
+}
+
+api_addr     = "{{vault_api_address}}"
+cluster_addr = "{{vault_cluster_address}}"
+
+telemetry {
+  prometheus_retention_time = "5m"
+  disable_hostname          = true
+}

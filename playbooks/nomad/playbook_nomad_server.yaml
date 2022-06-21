@@ -1,6 +1,10 @@
-- name: Deply Nomad
+- name: Deploy Nomad
   hosts: nomad_servers
   vars:
+    vault_url: http://192.168.1.15:8200
+#    vault_token:
+    nomad_encryption_key: "{{ lookup('hashi_vault', 'secret=secret/tools/nomad/nomad_gossip_encryption_key token={{ vault_token }} url={{ vault_url }}') }}"
+    nomad_cluster_token: "{{ lookup('hashi_vault', 'secret=secret/tools/nomad/nomad_cluster_token token={{ vault_token }} url={{ vault_url }}') }}"
     nomad_role: server
   become: true
 
